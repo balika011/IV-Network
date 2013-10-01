@@ -25,7 +25,7 @@ CMainMenu::~CMainMenu()
 	SAFE_DELETE(m_pExitButton);
 
 	if (m_pBackground)
-		g_pCore->GetGUI()->RemoveGUIWindow(m_pBackground);
+		m_pGUI->RemoveGUIWindow(m_pBackground);
 }
 
 bool CMainMenu::Initialize()
@@ -45,13 +45,13 @@ bool CMainMenu::Initialize()
 		ExitProcess(0);
 	}
 	// Create the main menu gui elements
-	float fWidth = (float) g_pCore->GetGUI()->GetDisplayWidth();
-	float fHeight = (float) g_pCore->GetGUI()->GetDisplayHeight();
+	float fWidth = (float) m_pGUI->GetDisplayWidth();
+	float fHeight = (float) m_pGUI->GetDisplayHeight();
 	float fX = -2.0f;
 	float fY = 0.5f;
 
 	// Create the Main Menu Background
-	m_pBackground = g_pCore->GetGUI()->CreateGUIStaticImage(g_pCore->GetGUI()->GetDefaultWindow());
+	m_pBackground = m_pGUI->CreateGUIStaticImage(m_pGUI->GetDefaultWindow());
 	m_pBackground->setProperty("FrameEnabled", "false");
 	m_pBackground->setProperty("BackgroundEnabled", "false");
 	m_pBackground->setPosition(CEGUI::UVector2(CEGUI::UDim(0, 0), CEGUI::UDim(0, 0)));
@@ -99,6 +99,7 @@ bool CMainMenu::Initialize()
 	m_pExitButton = CreateButton("Exit", CEGUI::UVector2(CEGUI::UDim(0.08f, 0), CEGUI::UDim(0.030f, 0)), CEGUI::UVector2(CEGUI::UDim(fX + 0.825f, 0), CEGUI::UDim(fY, 0)));
 	m_pExitButton->subscribeEvent(CEGUI::Window::EventMouseEnters, CEGUI::Event::Subscriber(&CMainMenu::OnExitButtonMouseEnter, this));
 	m_pExitButton->subscribeEvent(CEGUI::Window::EventMouseLeaves, CEGUI::Event::Subscriber(&CMainMenu::OnExitButtonMouseExit, this));
+	m_pExitButton->subscribeEvent(CEGUI::Window::EventMouseClick, CEGUI::Event::Subscriber(&CMainMenu::OnExitButtonMouseClick, this));
 	m_pBackground->addChildWindow(m_pExitButton);
 
 	return true;
@@ -111,7 +112,7 @@ void CMainMenu::SetVisible(bool bVisible)
 
 	m_bVisible = bVisible;
 	
-	g_pCore->GetGUI()->SetCursorVisible(bVisible);
+	m_pGUI->SetCursorVisible(bVisible);
 
 	m_pBackground->setVisible(bVisible);
 	m_pQuickConnectButton->setVisible(bVisible);
@@ -126,15 +127,13 @@ void CMainMenu::SetVisible(bool bVisible)
 
 CGUIStaticText * CMainMenu::CreateButton(char * szText, CEGUI::UVector2 vecSize, CEGUI::UVector2 vecPosition)
 {
-	CGUI * pGUI = g_pCore->GetGUI();
-
-	CGUIStaticText * pButton = pGUI->CreateGUIStaticText();
+	CGUIStaticText * pButton = m_pGUI->CreateGUIStaticText();
 	pButton->setText(CGUI::AnsiToCeguiFriendlyString(szText, strlen(szText)));
 	pButton->setSize(vecSize);
 	pButton->setPosition(vecPosition);
 	pButton->setProperty("FrameEnabled", "false");
 	pButton->setProperty("BackgroundEnabled", "false");
-	pButton->setFont(pGUI->GetFont("pricedown", 20));
+	pButton->setFont(m_pGUI->GetFont("pricedown", 20));
 	pButton->setProperty("TextColours", "tl:FFFFFFFF tr:FFFFFFFF bl:FFFFFFFF br:FFFFFFFF");
 	return pButton;
 }
@@ -152,20 +151,6 @@ bool CMainMenu::OnQuickConnectButtonMouseClick(const CEGUI::EventArgs &eventArgs
 
 	// Hide the main menu elements
 	SetVisible(false);
-	return true;
-}
-
-bool CMainMenu::OnExitButtonMouseClick(const CEGUI::EventArgs &eventArgs)
-{
-	// Are we connected to the network?
-	if (g_pCore->GetNetworkManager()->IsConnected())
-	{
-		// Disconnect and shutdown RakNet
-		g_pCore->GetNetworkManager()->Shutdown(500, true);
-	}
-
-	// Close IV:Network
-	TerminateProcess(GetCurrentProcess(), 0);
 	return true;
 }
 
@@ -193,6 +178,18 @@ bool CMainMenu::OnServerBrowserButtonMouseExit(const CEGUI::EventArgs &eventArgs
 	return true;
 }
 
+bool CMainMenu::OnSettingsButtonMouseEnter(const CEGUI::EventArgs &eventArgs)
+{
+	m_pSettingsButton->setAlpha(0.5f);
+	return true;
+}
+
+bool CMainMenu::OnSettingsButtonMouseExit(const CEGUI::EventArgs &eventArgs)
+{
+	m_pSettingsButton->setAlpha(1);
+	return true;
+}
+
 bool CMainMenu::OnCreditsButtonMouseEnter(const CEGUI::EventArgs &eventArgs)
 {
 	m_pCreditsButton->setAlpha(0.5f);
@@ -217,14 +214,16 @@ bool CMainMenu::OnExitButtonMouseExit(const CEGUI::EventArgs &eventArgs)
 	return true;
 }
 
-bool CMainMenu::OnSettingsButtonMouseEnter(const CEGUI::EventArgs &eventArgs)
+bool CMainMenu::OnExitButtonMouseClick(const CEGUI::EventArgs &eventArgs)
 {
-	m_pSettingsButton->setAlpha(0.5f);
-	return true;
-}
+	// Are we connected to the network?
+	if (g_pCore->GetNetworkManager()->IsConnected())
+	{
+		// Disconnect and shutdown RakNet
+		g_pCore->GetNetworkManager()->Shutdown(500, true);
+	}
 
-bool CMainMenu::OnSettingsButtonMouseExit(const CEGUI::EventArgs &eventArgs)
-{
-	m_pSettingsButton->setAlpha(1);
+	// Close IV:Network
+	ExitProcess(0);
 	return true;
 }
